@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardioPredict - Heart Attack Risk Assessment</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Unbounded:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff1744;
+            --secondary: #00e5ff;
+            --bg-dark: #0a0e27;
+            --bg-card: #141932;
+            --text: #e0e6ed;
+            --text-dim: #8892a6;
+            --accent-glow: rgba(255, 23, 68, 0.3);
+            --grid-color: rgba(0, 229, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        /* Glowing orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: var(--primary);
+            top: -200px;
+            right: -200px;
+            animation: float 15s ease-in-out infinite;
+        }
+
+        .orb-2 {
+            width: 500px;
+            height: 500px;
+            background: var(--secondary);
+            bottom: -250px;
+            left: -250px;
+            animation: float 20s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(50px, 50px) scale(1.1); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        header {
+            text-align: center;
+            padding: 4rem 0 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-family: 'Unbounded', sans-serif;
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+
+        .heartbeat-line {
+            width: 200px;
+            height: 60px;
+            margin: 1.5rem auto;
+        }
+
+        .main-card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 3rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 1rem 1.2rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--secondary);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+        }
+
+        input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .btn-predict {
+            width: 100%;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), #d81b60);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-family: 'Unbounded', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 2rem;
+            box-shadow: 0 10px 30px rgba(255, 23, 68, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-predict::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-predict:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(255, 23, 68, 0.5);
+        }
+
+        .btn-predict:active {
+            transform: translateY(0);
+        }
+
+        .btn-predict:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-section {
+            margin-top: 3rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            display: none;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .result-section.active {
+            display: block;
+        }
+
+        .risk-indicator {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .risk-percentage {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 4rem;
+            font-weight: 900;
+            margin: 1rem 0;
+            animation: numberCount 1.5s ease-out;
+        }
+
+        @keyframes numberCount {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .risk-high {
+            color: var(--primary);
+            text-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .risk-low {
+            color: var(--secondary);
+            text-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
+        }
+
+        .risk-label {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--secondary);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            animation: fadeInUp 0.8s ease-out both;
+        }
+
+        .info-card:nth-child(1) { animation-delay: 0.4s; }
+        .info-card:nth-child(2) { animation-delay: 0.5s; }
+        .info-card:nth-child(3) { animation-delay: 0.6s; }
+
+        .info-card h3 {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: var(--secondary);
+        }
+
+        .info-card p {
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem 0;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            animation: fadeIn 1s ease-out 0.8s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .main-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="container">
+        <header>
+            <h1>CardioPredict</h1>
+            <svg class="heartbeat-line" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 30 L40 30 L50 10 L60 50 L70 30 L200 30" stroke="url(#gradient)" stroke-width="2" fill="none">
+                    <animate attributeName="stroke-dasharray" from="0,300" to="300,0" dur="2s" repeatCount="indefinite"/>
+                </path>
+                <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#ff1744;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#00e5ff;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+            </svg>
+            <p class="subtitle">AI-Powered Heart Attack Risk Assessment</p>
+        </header>
+
+        <div class="main-card">
+            <h2 style="font-family: 'Unbounded', sans-serif; font-size: 2rem; margin-bottom: 2rem; text-align: center;">Enter Patient Data</h2>
+            
+            <form id="predictionForm">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" placeholder="e.g., 45" min="1" max="120" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="sex">Sex</label>
+                        <select id="sex" required>
+                            <option value="">Select...</option>
+                            <option value="1">Male</option>
+                            <option value="0">Female</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="cp">Chest Pain Type</label>
+                        <select id="cp" required>
+                            <option value="">Select...</option>
+                            <option value="0">Typical Angina</option>
+                            <option value="1">Atypical Angina</option>
+                            <option value="2">Non-anginal Pain</option>
+                            <option value="3">Asymptomatic</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="trestbps">Resting Blood Pressure (mm Hg)</label>
+                        <input type="number" id="trestbps" placeholder="e.g., 120" min="50" max="300" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="chol">Cholesterol (mg/dl)</label>
+                        <input type="number" id="chol" placeholder="e.g., 200" min="100" max="600" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="fbs">Fasting Blood Sugar > 120 mg/dl</label>
+                        <select id="fbs" required>
+                            <option value="">Select...</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="restecg">Resting ECG</label>
+                        <select id="restecg" required>
+                            <option value="">Select...</option>
+                            <option value="0">Normal</option>
+                            <option value="1">ST-T Wave Abnormality</option>
+                            <option value="2">Left Ventricular Hypertrophy</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="thalach">Max Heart Rate Achieved</label>
+                        <input type="number" id="thalach" placeholder="e.g., 150" min="60" max="220" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="exang">Exercise Induced Angina</label>
+                        <select id="exang" required>
+                            <option value="">Select...</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="oldpeak">ST Depression</label>
+                        <input type="number" id="oldpeak" placeholder="e.g., 2.5" step="0.1" min="0" max="10" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="slope">Slope of Peak Exercise ST</label>
+                        <select id="slope" required>
+                            <option value="">Select...</option>
+                            <option value="0">Upsloping</option>
+                            <option value="1">Flat</option>
+                            <option value="2">Downsloping</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="ca">Number of Major Vessels</label>
+                        <select id="ca" required>
+                            <option value="">Select...</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="thal">Thalassemia</label>
+                        <select id="thal" required>
+                            <option value="">Select...</option>
+                            <option value="0">Normal</option>
+                            <option value="1">Fixed Defect</option>
+                            <option value="2">Reversible Defect</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-predict" id="predictBtn">
+                    <span id="btnText">Analyze Risk</span>
+                </button>
+            </form>
+
+            <div class="result-section" id="resultSection">
+                <div class="risk-indicator">
+                    <div class="risk-label">RISK ASSESSMENT</div>
+                    <div class="risk-percentage" id="riskPercentage">--</div>
+                    <div class="risk-label" id="riskLabel">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-cards">
+            <div class="info-card">
+                <h3>🧠 AI-Powered Analysis</h3>
+                <p>Our machine learning model analyzes 13 key cardiovascular indicators to assess heart attack risk with high accuracy.</p>
+            </div>
+            
+            <div class="info-card">
+                <h3>⚡ Real-Time Results</h3>
+                <p>Get instant risk assessment powered by advanced algorithms trained on extensive medical datasets.</p>
+            </div>
+            
+            <div class="info-card">
+                <h3>🔒 Secure & Private</h3>
+                <p>Your health data is processed securely and is never stored or shared. All predictions are performed in real-time.</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>⚠️ This tool is for educational purposes only. Always consult healthcare professionals for medical advice.</p>
+            <p style="margin-top: 1rem; opacity: 0.5;">© 2024 CardioPredict | Powered by AI</p>
+        </footer>
+    </div>
+
+    <script>
+        // ========================================
+        // CONFIGURATION
+        // ========================================
+        // Replace this with your actual Render API endpoint
+        const API_ENDPOINT = 'https://your-render-app.onrender.com/predict';
+        
+        // ========================================
+        // FORM HANDLING
+        // ========================================
+        const form = document.getElementById('predictionForm');
+        const predictBtn = document.getElementById('predictBtn');
+        const btnText = document.getElementById('btnText');
+        const resultSection = document.getElementById('resultSection');
+        const riskPercentage = document.getElementById('riskPercentage');
+        const riskLabel = document.getElementById('riskLabel');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Collect form data
+            const formData = {
+                age: parseInt(document.getElementById('age').value),
+                sex: parseInt(document.getElementById('sex').value),
+                cp: parseInt(document.getElementById('cp').value),
+                trestbps: parseInt(document.getElementById('trestbps').value),
+                chol: parseInt(document.getElementById('chol').value),
+                fbs: parseInt(document.getElementById('fbs').value),
+                restecg: parseInt(document.getElementById('restecg').value),
+                thalach: parseInt(document.getElementById('thalach').value),
+                exang: parseInt(document.getElementById('exang').value),
+                oldpeak: parseFloat(document.getElementById('oldpeak').value),
+                slope: parseInt(document.getElementById('slope').value),
+                ca: parseInt(document.getElementById('ca').value),
+                thal: parseInt(document.getElementById('thal').value)
+            };
+
+            // Show loading state
+            predictBtn.disabled = true;
+            btnText.innerHTML = '<span class="loading"></span> Analyzing...';
+            resultSection.classList.remove('active');
+
+            try {
+                // Make API call to your Render endpoint
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                // Display results
+                displayResults(result);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error connecting to the prediction service. Please check your API endpoint and try again.\n\nError: ' + error.message);
+            } finally {
+                // Reset button state
+                predictBtn.disabled = false;
+                btnText.textContent = 'Analyze Risk';
+            }
+        });
+
+        function displayResults(result) {
+            // Show result section
+            resultSection.classList.add('active');
+            
+            // Scroll to results
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            
+            // Assume your API returns { prediction: 0 or 1, probability: 0.XX }
+            // Adjust based on your actual API response format
+            const prediction = result.prediction || result.result || 0;
+            const probability = result.probability || result.confidence || (prediction * 100);
+            
+            // Calculate risk percentage
+            const riskPercent = Math.round(probability * 100) / 100;
+            
+            // Update display
+            riskPercentage.textContent = riskPercent + '%';
+            
+            if (prediction === 1 || riskPercent > 50) {
+                riskPercentage.classList.remove('risk-low');
+                riskPercentage.classList.add('risk-high');
+                riskLabel.textContent = 'HIGH RISK';
+                riskLabel.style.color = 'var(--primary)';
+            } else {
+                riskPercentage.classList.remove('risk-high');
+                riskPercentage.classList.add('risk-low');
+                riskLabel.textContent = 'LOW RISK';
+                riskLabel.style.color = 'var(--secondary)';
+            }
+        }
+
+        // ========================================
+        // EXAMPLE: Testing without API
+        // ========================================
+        // Uncomment this function and comment out the fetch() call above to test the UI
+        /*
+        function mockPrediction(formData) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Random prediction for testing
+                    const prediction = Math.random() > 0.5 ? 1 : 0;
+                    const probability = prediction ? (50 + Math.random() * 50) : (Math.random() * 50);
+                    
+                    resolve({
+                        prediction: prediction,
+                        probability: probability
+                    });
+                }, 1500);
+            });
+        }
+        */
+    </script>
+</body>
+</html>
